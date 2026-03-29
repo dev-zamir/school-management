@@ -61,7 +61,7 @@ async def get_student(
     return await student_service.get_student(db, student_id)
 
 
-@router.put(
+@router.patch(
     "/{student_id}",
     response_model=StudentResponse,
     summary="Update a student",

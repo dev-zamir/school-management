@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Date, Integer, Boolean
+from sqlalchemy import Column, String, Date, Integer, Boolean, text
 
 from app.db.session import Base
 from app.models.base import UUIDMixin, TimestampMixin
@@ -12,4 +12,7 @@ class Student(Base, UUIDMixin, TimestampMixin):
     email = Column(String(255), unique=True, nullable=False, index=True)
     date_of_birth = Column(Date, nullable=False)
     grade_level = Column(Integer, nullable=False)
-    is_active = Column(Boolean, default=True, nullable=False)
+    is_active = Column(Boolean, server_default=text("true"), nullable=False)
+
+    def __repr__(self):
+        return f"<Student {self.email}>"

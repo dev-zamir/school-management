@@ -1,7 +1,7 @@
-import math
 from uuid import UUID
 
 from sqlalchemy import select, func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.student import Student
@@ -12,14 +12,18 @@ from app.dependencies.pagination import PaginationParams
 
 async def create_student(db: AsyncSession, data: StudentCreate) -> Student:
     existing = await db.execute(
-        select(Student).where(Student.email == data.email)
+        select(Student.id).where(Student.email == data.email)
     )
     if existing.scalar_one_or_none():
         raise AlreadyExistsError("Student", "email", data.email)
 
     student = Student(**data.model_dump())
     db.add(student)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError:
+        await db.rollback()
+        raise AlreadyExistsError("Student", "email", data.email)
     await db.refresh(student)
     return student
 
@@ -58,7 +62,7 @@ async def update_student(
 
     if "email" in update_data and update_data["email"] != student.email:
         existing = await db.execute(
-            select(Student).where(Student.email == update_data["email"])
+            select(Student.id).where(Student.email == update_data["email"])
         )
         if existing.scalar_one_or_none():
             raise AlreadyExistsError("Student", "email", update_data["email"])
@@ -66,7 +70,11 @@ async def update_student(
     for field, value in update_data.items():
         setattr(student, field, value)
 
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError:
+        await db.rollback()
+        raise AlreadyExistsError("Student", "email", update_data.get("email", ""))
     await db.refresh(student)
     return student
 
